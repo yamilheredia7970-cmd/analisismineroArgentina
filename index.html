@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MacroMinería - Análisis Económico</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+                    },
+                    colors: {
+                        bg: '#f8fafc',
+                        sidebar: '#1e293b',
+                        card: '#ffffff',
+                        main: '#0f172a',
+                        muted: '#64748b',
+                        accent: '#2563eb',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        border: '#e2e8f0',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        
+        /* Loader */
+        #loader-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Loading Screen -->
+    <div id="loader-overlay">
+        <div class="spinner mb-4"></div>
+        <h2 class="text-xl font-semibold text-slate-700">Procesando Dataset Minero...</h2>
+        <p class="text-slate-500 mt-2">Calculando KPIs y renderizando gráficos</p>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-sidebar text-white border-b border-border sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                <h1 class="text-[18px] font-bold tracking-tight">MacroMinería <span class="text-muted font-normal text-sm ml-2">Análisis Económico</span></h1>
+            </div>
+            <div class="text-sm text-muted font-medium">
+                Datos: 2004 - 2025
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- Filters -->
+        <div class="mb-8 flex flex-wrap items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                <span class="font-semibold text-[12px] text-muted uppercase tracking-wider">Filtros:</span>
+            </div>
+            
+            <div class="flex gap-3 ml-2">
+                <select id="filter-price" class="bg-bg border border-border text-main text-sm rounded-lg focus:ring-accent focus:border-accent block p-2.5 outline-none cursor-pointer font-medium">
+                    <option value="Constantes">Precios Constantes (Real)</option>
+                    <option value="Corrientes">Precios Corrientes (Nominal)</option>
+                </select>
+                
+                <select id="filter-variable" class="bg-bg border border-border text-main text-sm rounded-lg focus:ring-accent focus:border-accent block p-2.5 outline-none cursor-pointer font-medium">
+                    <option value="Valor agregado bruto">Valor Agregado Bruto (VAB)</option>
+                    <option value="Valor bruto de la producción">Valor Bruto de Producción (VBP)</option>
+                </select>
+            </div>
+            <div class="ml-auto text-xs text-muted italic">
+                * El dataset original no contiene desglose por mineral ni región.
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+            <!-- KPI 1 -->
+            <div class="card p-5">
+                <h3 class="text-muted text-[12px] uppercase tracking-wider mb-2" id="kpi1-title">Producción Total (2025)</h3>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-[22px] font-bold text-main" id="kpi1-value">--</span>
+                    <span class="text-sm font-normal text-muted">M ARS</span>
+                </div>
+                <p class="text-[12px] font-semibold text-success mt-2" id="kpi1-subtitle">A precios constantes</p>
+            </div>
+            
+            <!-- KPI 2 -->
+            <div class="card p-5">
+                <h3 class="text-muted text-[12px] uppercase tracking-wider mb-2">Crecimiento Acumulado</h3>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-[22px] font-bold text-main" id="kpi2-value">--</span>
+                    <span class="text-sm font-normal text-muted">%</span>
+                </div>
+                <p class="text-[12px] font-semibold text-success mt-2">Periodo 2004 - 2025</p>
+            </div>
+
+            <!-- KPI 3 -->
+            <div class="card p-5">
+                <h3 class="text-muted text-[12px] uppercase tracking-wider mb-2">Participación en Economía</h3>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-[22px] font-bold text-main" id="kpi3-value">--</span>
+                    <span class="text-sm font-normal text-muted">%</span>
+                </div>
+                <p class="text-[12px] font-semibold text-success mt-2">Último registro (2025)</p>
+            </div>
+
+            <!-- KPI 4 -->
+            <div class="card p-5">
+                <h3 class="text-muted text-[12px] uppercase tracking-wider mb-2">Año Pico de Producción</h3>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-[22px] font-bold text-main" id="kpi4-value">--</span>
+                </div>
+                <p class="text-[12px] font-semibold text-success mt-2" id="kpi4-subtitle">Mayor volumen histórico</p>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
+            <!-- Main Trend Chart -->
+            <div class="card lg:col-span-2 p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-[14px] font-semibold text-main">Evolución de la Producción</h3>
+                    <span class="bg-bg text-muted text-xs px-2 py-1 rounded font-medium" id="chart1-badge">Constantes</span>
+                </div>
+                <div class="relative h-60 w-full">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Participation Chart -->
+            <div class="card p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-[14px] font-semibold text-main">Peso en la Economía</h3>
+                </div>
+                <div class="relative h-60 w-full">
+                    <canvas id="participationChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <!-- VBP vs VAB Comparison -->
+            <div class="card p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-[14px] font-semibold text-main">VBP vs VAB (Millones ARS)</h3>
+                    <span class="text-[12px] font-normal text-muted">Comparativa Histórica</span>
+                </div>
+                <div class="relative h-48 w-full">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Cost Structure Pie -->
+            <div class="card p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-[14px] font-semibold text-main">Estructura de Costos (2025)</h3>
+                    <span class="text-[12px] font-normal text-muted">VBP Desagregado</span>
+                </div>
+                <div class="relative h-48 w-full flex justify-center">
+                    <canvas id="structureChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- DATASET EMBEBIDO ---
+        const csvData = `Año,Variable,Rama,Valor,% del total de la economía,Unidad,A precios,Medición
+2004,Valor bruto de la producción,Minería,4462.924902,0.5%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2005,Valor bruto de la producción,Minería,5144.106128,0.6%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2006,Valor bruto de la producción,Minería,5799.615675,0.6%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2007,Valor bruto de la producción,Minería,5651.902963,0.5%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2008,Valor bruto de la producción,Minería,5695.278449,0.5%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2009,Valor bruto de la producción,Minería,6685.601283,0.6%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2010,Valor bruto de la producción,Minería,7432.173727,0.6%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2011,Valor bruto de la producción,Minería,7005.864316,0.6%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2012,Valor bruto de la producción,Minería,7103.811562,0.6%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2013,Valor bruto de la producción,Minería,6225.773823,0.5%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2014,Valor bruto de la producción,Minería,6729.811641,0.6%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2015,Valor bruto de la producción,Minería,7070.126802,0.6%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2016,Valor bruto de la producción,Minería,6589.484466,0.5%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2017,Valor bruto de la producción,Minería,6676.984619,0.5%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2018,Valor bruto de la producción,Minería,6316.157014,0.5%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2019,Valor bruto de la producción,Minería,5763.884008,0.5%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2020,Valor bruto de la producción,Minería,5330.66305,0.5%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2021,Valor bruto de la producción,Minería,6059.691149,0.5%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2022,Valor bruto de la producción,Minería,6619.570695,0.5%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2023,Valor bruto de la producción,Minería,6966.382942,0.6%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2024,Valor bruto de la producción,Minería,6870.767278,0.6%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2025,Valor bruto de la producción,Minería,7260.194157,0.6%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2004,Valor bruto de la producción,Minería,4462.924902,0.5%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2005,Valor bruto de la producción,Minería,6527.909479,0.7%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2006,Valor bruto de la producción,Minería,10982.75021,0.9%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2007,Valor bruto de la producción,Minería,11981.2601,0.8%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2008,Valor bruto de la producción,Minería,12556.86359,0.7%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2009,Valor bruto de la producción,Minería,15848.71784,0.8%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2010,Valor bruto de la producción,Minería,24560.61501,0.9%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2011,Valor bruto de la producción,Minería,30843.65094,0.9%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2012,Valor bruto de la producción,Minería,34689.20258,0.8%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2013,Valor bruto de la producción,Minería,35193.83996,0.6%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2014,Valor bruto de la producción,Minería,49759.24049,0.7%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2015,Valor bruto de la producción,Minería,57903.13757,0.6%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2016,Valor bruto de la producción,Minería,77848.20607,0.6%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2017,Valor bruto de la producción,Minería,100102.1023,0.6%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2018,Valor bruto de la producción,Minería,141638.7016,0.6%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2019,Valor bruto de la producción,Minería,256264.7565,0.7%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2020,Valor bruto de la producción,Minería,310222.8784,0.7%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2021,Valor bruto de la producción,Minería,588183.2575,0.8%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2022,Valor bruto de la producción,Minería,998434.9385,0.7%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2023,Valor bruto de la producción,Minería,2670810.176,0.8%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2024,Valor bruto de la producción,Minería,8558739.931,0.9%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2025,Valor bruto de la producción,Minería,13572087.04,1.0%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2004,Valor agregado bruto,Minería,2967.283148,0.7%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2005,Valor agregado bruto,Minería,3419.541777,0.8%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2006,Valor agregado bruto,Minería,3860.171046,0.8%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2007,Valor agregado bruto,Minería,3732.425099,0.7%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2008,Valor agregado bruto,Minería,3752.338821,0.7%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2009,Valor agregado bruto,Minería,4445.114585,0.9%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2010,Valor agregado bruto,Minería,4973.979375,0.9%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2011,Valor agregado bruto,Minería,4666.69406,0.8%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2012,Valor agregado bruto,Minería,4732.637398,0.8%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2013,Valor agregado bruto,Minería,4116.242743,0.7%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2014,Valor agregado bruto,Minería,4475.218001,0.8%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2015,Valor agregado bruto,Minería,4707.297104,0.8%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2016,Valor agregado bruto,Minería,4396.307196,0.7%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2017,Valor agregado bruto,Minería,4448.440586,0.7%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2018,Valor agregado bruto,Minería,4186.977883,0.7%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2019,Valor agregado bruto,Minería,3811.377167,0.7%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2020,Valor agregado bruto,Minería,3550.504631,0.7%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2021,Valor agregado bruto,Minería,3949.724938,0.7%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2022,Valor agregado bruto,Minería,4312.362717,0.7%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2023,Valor agregado bruto,Minería,4528.644381,0.8%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2024,Valor agregado bruto,Minería,4482.744736,0.8%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2025,Valor agregado bruto,Minería,4707.81045,0.8%,Millones de pesos de 2004,Constantes,En pesos constantes de 2004
+2004,Valor agregado bruto,Minería,2967.283148,0.7%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2005,Valor agregado bruto,Minería,4166.833535,0.8%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2006,Valor agregado bruto,Minería,7814.861432,1.3%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2007,Valor agregado bruto,Minería,7856.571523,1.0%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2008,Valor agregado bruto,Minería,8208.127275,0.9%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2009,Valor agregado bruto,Minería,10444.13815,1.0%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2010,Valor agregado bruto,Minería,16320.38048,1.2%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2011,Valor agregado bruto,Minería,20438.27319,1.1%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2012,Valor agregado bruto,Minería,22954.3818,1.0%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2013,Valor agregado bruto,Minería,23074.72583,0.8%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2014,Valor agregado bruto,Minería,32624.93019,0.8%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2015,Valor agregado bruto,Minería,37890.01622,0.8%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2016,Valor agregado bruto,Minería,51044.39786,0.7%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2017,Valor agregado bruto,Minería,65501.30812,0.7%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2018,Valor agregado bruto,Minería,92923.76649,0.7%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2019,Valor agregado bruto,Minería,169437.7565,0.9%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2020,Valor agregado bruto,Minería,204040.6853,0.9%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2021,Valor agregado bruto,Minería,385291.4541,1.0%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2022,Valor agregado bruto,Minería,662152.4968,0.9%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2023,Valor agregado bruto,Minería,1770270.742,1.1%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2024,Valor agregado bruto,Minería,5518677.667,1.1%,Millones de pesos corrientes,Corrientes,En pesos corrientes
+2025,Valor agregado bruto,Minería,8750931.895,1.2%,Millones de pesos corrientes,Corrientes,En pesos corrientes`;
+
+        // --- PARSER ---
+        function parseCSV(csv) {
+            const lines = csv.trim().split('\n');
+            const headers = lines[0].split(',');
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                if (values.length === headers.length) {
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header.trim()] = values[index].trim();
+                    });
+                    // Convert numeric values
+                    row['Valor'] = parseFloat(row['Valor']);
+                    row['% del total de la economía'] = parseFloat(row['% del total de la economía'].replace('%', ''));
+                    row['Año'] = parseInt(row['Año']);
+                    data.push(row);
+                }
+            }
+            return data;
+        }
+
+        const parsedData = parseCSV(csvData);
+        
+        // --- ESTADO GLOBAL ---
+        let currentPrice = 'Constantes';
+        let currentVariable = 'Valor agregado bruto';
+        let charts = {};
+
+        // --- LÓGICA DE FILTRADO ---
+        function getFilteredData() {
+            return parsedData.filter(d => d['A precios'] === currentPrice && d['Variable'] === currentVariable)
+                             .sort((a, b) => a['Año'] - b['Año']);
+        }
+
+        // --- ACTUALIZAR KPIs ---
+        function updateKPIs() {
+            const data = getFilteredData();
+            if (data.length === 0) return;
+
+            const latest = data[data.length - 1];
+            const first = data[0];
+            
+            // KPI 1: Producción Total
+            const valueFormatted = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(latest['Valor']);
+            document.getElementById('kpi1-value').textContent = valueFormatted;
+            document.getElementById('kpi1-title').textContent = currentVariable === 'Valor agregado bruto' ? 'VAB Total (2025)' : 'VBP Total (2025)';
+            document.getElementById('kpi1-subtitle').textContent = `A precios ${currentPrice.toLowerCase()}`;
+
+            // KPI 2: Crecimiento
+            const growth = ((latest['Valor'] - first['Valor']) / first['Valor']) * 100;
+            const growthEl = document.getElementById('kpi2-value');
+            growthEl.textContent = (growth > 0 ? '+' : '') + growth.toFixed(1);
+            growthEl.className = `text-[22px] font-bold ${growth >= 0 ? 'text-success' : 'text-warning'}`;
+
+            // KPI 3: Participación
+            document.getElementById('kpi3-value').textContent = latest['% del total de la economía'].toFixed(1);
+
+            // KPI 4: Año Pico
+            const maxRecord = [...data].sort((a, b) => b['Valor'] - a['Valor'])[0];
+            document.getElementById('kpi4-value').textContent = maxRecord['Año'];
+            document.getElementById('kpi4-subtitle').textContent = `Volumen: ${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(maxRecord['Valor'])} M`;
+        }
+
+        // --- RENDERIZAR GRÁFICOS ---
+        function initCharts() {
+            Chart.defaults.font.family = 'Segoe UI, Roboto, Helvetica, Arial, sans-serif';
+            Chart.defaults.color = '#64748b';
+
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            charts.trend = new Chart(ctxTrend, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)', padding: 12, cornerRadius: 8 }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [4, 4], color: '#e2e8f0' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            const ctxPart = document.getElementById('participationChart').getContext('2d');
+            charts.participation = new Chart(ctxPart, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: (ctx) => ctx.raw + '%' } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { callback: (val) => val + '%' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            const ctxComp = document.getElementById('comparisonChart').getContext('2d');
+            charts.comparison = new Chart(ctxComp, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            const ctxStruct = document.getElementById('structureChart').getContext('2d');
+            charts.structure = new Chart(ctxStruct, {
+                type: 'doughnut',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            const data = getFilteredData();
+            const labels = data.map(d => d['Año']);
+            const values = data.map(d => d['Valor']);
+            const participation = data.map(d => d['% del total de la economía']);
+
+            // Update Trend Chart
+            charts.trend.data.labels = labels;
+            charts.trend.data.datasets = [{
+                label: currentVariable,
+                data: values,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 3,
+                pointHoverRadius: 6
+            }];
+            charts.trend.update();
+            document.getElementById('chart1-badge').textContent = currentPrice;
+
+            // Update Participation Chart
+            charts.participation.data.labels = labels;
+            charts.participation.data.datasets = [{
+                label: '% de la Economía',
+                data: participation,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3
+            }];
+            charts.participation.update();
+
+            // Update Comparison Chart (VBP vs VAB for current price type)
+            const vbpData = parsedData.filter(d => d['A precios'] === currentPrice && d['Variable'] === 'Valor bruto de la producción').sort((a, b) => a['Año'] - b['Año']);
+            const vabData = parsedData.filter(d => d['A precios'] === currentPrice && d['Variable'] === 'Valor agregado bruto').sort((a, b) => a['Año'] - b['Año']);
+            
+            charts.comparison.data.labels = labels;
+            charts.comparison.data.datasets = [
+                {
+                    label: 'VBP',
+                    data: vbpData.map(d => d['Valor']),
+                    backgroundColor: '#e2e8f0',
+                    borderRadius: 4
+                },
+                {
+                    label: 'VAB',
+                    data: vabData.map(d => d['Valor']),
+                    backgroundColor: '#2563eb',
+                    borderRadius: 4
+                }
+            ];
+            charts.comparison.update();
+
+            // Update Structure Chart (Latest Year)
+            const latestVbp = vbpData[vbpData.length - 1]['Valor'];
+            const latestVab = vabData[vabData.length - 1]['Valor'];
+            const intermediateConsumption = latestVbp - latestVab;
+
+            charts.structure.data.labels = ['Valor Agregado Bruto (VAB)', 'Consumo Intermedio'];
+            charts.structure.data.datasets = [{
+                data: [latestVab, intermediateConsumption],
+                backgroundColor: ['#2563eb', '#e2e8f0'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }];
+            charts.structure.update();
+        }
+
+        // --- INICIALIZACIÓN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Simular carga para efecto visual profesional
+            setTimeout(() => {
+                document.getElementById('loader-overlay').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loader-overlay').style.display = 'none';
+                }, 500);
+                
+                initCharts();
+                updateKPIs();
+                updateCharts();
+            }, 1000);
+
+            // Listeners de filtros
+            document.getElementById('filter-price').addEventListener('change', (e) => {
+                currentPrice = e.target.value;
+                updateKPIs();
+                updateCharts();
+            });
+
+            document.getElementById('filter-variable').addEventListener('change', (e) => {
+                currentVariable = e.target.value;
+                updateKPIs();
+                updateCharts();
+            });
+        });
+    </script>
+</body>
+</html>
