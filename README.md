@@ -1,20 +1,14 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+MacroMinería: Análisis Económico del Sector Minero (2004-2025)
 
-# Run and deploy your AI Studio app
+Sobre el proyecto:
+Herramienta de Business Intelligence desarrollada en un entorno web ligero (HTML/JS/Tailwind/Chart.js) orientada a la toma de decisiones estratégicas y análisis macroeconómico del sector minero.
 
-This contains everything you need to run your app locally.
+Qué se analiza?
 
-View your app in AI Studio: https://ai.studio/apps/e5f8b411-3042-4508-9b40-3cf4bbe3dc85
+Evolución Histórica: Tendencia de producción a lo largo de 21 años, identificando ciclos de estancamiento, picos históricos y fases de recuperación.
+Impacto Económico: El peso porcentual del sector minero sobre el total de la economía nacional.
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Estructura de Costos: La capacidad del sector para generar riqueza neta a partir de su producción bruta.
+¿Qué se compara?
+Crecimiento Real vs. Nominal: Comparativa entre Precios Constantes (volumen físico real) y Precios Corrientes (afectados por la inflación) para evitar ilusiones nominales en el análisis.
+VBP vs. VAB: Contraste entre el Valor Bruto de Producción (facturación total) y el Valor Agregado Bruto (riqueza real generada descontando el consumo intermedio o costos operativos).
