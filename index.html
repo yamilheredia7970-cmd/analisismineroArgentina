@@ -99,6 +99,19 @@
     <!-- Main Content -->
     <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         
+        <!-- Insight Box -->
+        <div class="mb-6 bg-sidebar text-white p-5 rounded-xl shadow-sm border border-border">
+            <h3 class="text-success font-semibold text-sm mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Insights Clave del Analista
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-slate-300">
+                <p>“El incremento de la participación del sector en el PBI (0.7% a 1.2%) indica un fortalecimiento relativo de la minería dentro de la economía nacional, consolidándose como un actor cada vez más relevante.”</p>
+                <p>“El ratio VBP/VAB (~65%) sugiere una conversión eficiente de producción en valor agregado, aunque su sostenibilidad dependerá de la estructura de costos y del contexto de precios internacionales.”</p>
+                <p class="border-l-2 border-warning pl-3"><span class="text-warning font-semibold block mb-1">⚠️ Riesgo Estructural:</span> “A pesar del crecimiento observado, la evolución del sector podría estar condicionada por factores externos como precios internacionales y concentración productiva, lo que introduce cierto nivel de vulnerabilidad estructural.”</p>
+            </div>
+        </div>
+
         <!-- Filters -->
         <div class="mb-8 flex flex-wrap items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
             <div class="flex items-center gap-2">
@@ -184,6 +197,35 @@
                 </div>
                 <div class="relative h-60 w-full">
                     <canvas id="participationChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Analytics Grid -->
+        <div class="mb-4 mt-2 flex items-center gap-2">
+            <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            <h2 class="text-lg font-bold text-main">Análisis Avanzado & Desacoples</h2>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+            <!-- YoY Growth (Crises & Booms) -->
+            <div class="card p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-[14px] font-semibold text-main">Crecimiento Interanual (%)</h3>
+                    <span class="text-[12px] font-normal text-muted">Detección de Crisis y Quiebres</span>
+                </div>
+                <div class="relative h-60 w-full">
+                    <canvas id="yoyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Efficiency Ratio -->
+            <div class="card p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-[14px] font-semibold text-main">Eficiencia: Ratio VAB / VBP</h3>
+                    <span class="text-[12px] font-normal text-muted">Generación de Valor Real</span>
+                </div>
+                <div class="relative h-60 w-full">
+                    <canvas id="efficiencyChart"></canvas>
                 </div>
             </div>
         </div>
@@ -394,6 +436,30 @@
                 }
             });
 
+            const ctxYoy = document.getElementById('yoyChart').getContext('2d');
+            charts.yoy = new Chart(ctxYoy, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ctx.raw.toFixed(2) + '%' } } },
+                    scales: { y: { grid: { borderDash: [2, 4] } }, x: { grid: { display: false } } }
+                }
+            });
+
+            const ctxEfficiency = document.getElementById('efficiencyChart').getContext('2d');
+            charts.efficiency = new Chart(ctxEfficiency, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ctx.raw.toFixed(2) + '%' } } },
+                    scales: { y: { grid: { borderDash: [2, 4] }, min: 0, max: 100 }, x: { grid: { display: false } } }
+                }
+            });
+
             const ctxPart = document.getElementById('participationChart').getContext('2d');
             charts.participation = new Chart(ctxPart, {
                 type: 'line',
@@ -448,19 +514,44 @@
             const values = data.map(d => d['Valor']);
             const participation = data.map(d => d['% del total de la economía']);
 
+            // Calculate Linear Regression Trendline
+            const n = values.length;
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            for (let i = 0; i < n; i++) {
+                sumX += i;
+                sumY += values[i];
+                sumXY += i * values[i];
+                sumXX += i * i;
+            }
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+            const trendLineData = values.map((_, i) => slope * i + intercept);
+
             // Update Trend Chart
             charts.trend.data.labels = labels;
-            charts.trend.data.datasets = [{
-                label: currentVariable,
-                data: values,
-                borderColor: '#2563eb',
-                backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.3,
-                pointRadius: 3,
-                pointHoverRadius: 6
-            }];
+            charts.trend.data.datasets = [
+                {
+                    label: currentVariable,
+                    data: values,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Tendencia Lineal',
+                    data: trendLineData,
+                    borderColor: '#f59e0b',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    pointRadius: 0,
+                    tension: 0
+                }
+            ];
             charts.trend.update();
             document.getElementById('chart1-badge').textContent = currentPrice;
 
@@ -511,6 +602,48 @@
                 hoverOffset: 4
             }];
             charts.structure.update();
+
+            // Update YoY Chart (Crecimiento Interanual)
+            const yoyData = [];
+            const yoyColors = [];
+            for(let i=0; i<values.length; i++) {
+                if(i === 0) {
+                    yoyData.push(0);
+                    yoyColors.push('#e2e8f0');
+                } else {
+                    const growth = ((values[i] - values[i-1]) / values[i-1]) * 100;
+                    yoyData.push(growth);
+                    yoyColors.push(growth >= 0 ? '#10b981' : '#ef4444');
+                }
+            }
+            charts.yoy.data.labels = labels;
+            charts.yoy.data.datasets = [{
+                label: 'Crecimiento %',
+                data: yoyData,
+                backgroundColor: yoyColors,
+                borderRadius: 4
+            }];
+            charts.yoy.update();
+
+            // Update Efficiency Chart (VAB / VBP Ratio)
+            const efficiencyData = [];
+            for(let i=0; i<labels.length; i++) {
+                const vab = vabData.find(d => d['Año'] === labels[i])?.['Valor'] || 0;
+                const vbp = vbpData.find(d => d['Año'] === labels[i])?.['Valor'] || 1;
+                efficiencyData.push((vab / vbp) * 100);
+            }
+            charts.efficiency.data.labels = labels;
+            charts.efficiency.data.datasets = [{
+                label: 'Eficiencia (VAB/VBP) %',
+                data: efficiencyData,
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 3
+            }];
+            charts.efficiency.update();
         }
 
         // --- INICIALIZACIÓN ---
