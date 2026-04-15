@@ -44,6 +44,7 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             border: 1px solid #e2e8f0;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            overflow: hidden;
         }
         .card:hover {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
@@ -74,7 +75,7 @@
         }
     </style>
 </head>
-<body class="antialiased min-h-screen flex flex-col">
+<body class="antialiased min-h-screen flex flex-col overflow-x-hidden">
 
     <!-- Loading Screen -->
     <div id="loader-overlay">
@@ -86,11 +87,11 @@
     <!-- Header -->
     <header class="bg-sidebar text-white border-b border-border sticky top-0 z-30">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                <h1 class="text-[18px] font-bold tracking-tight">MacroMinería <span class="text-muted font-normal text-sm ml-2">Análisis Económico</span></h1>
+            <div class="flex items-center gap-2 sm:gap-3">
+                <svg class="w-6 h-6 sm:w-8 sm:h-8 text-accent shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                <h1 class="text-base sm:text-[18px] font-bold tracking-tight leading-tight">MacroMinería <span class="text-muted font-normal text-xs sm:text-sm block sm:inline sm:ml-2">Análisis Económico</span></h1>
             </div>
-            <div class="text-sm text-muted font-medium">
+            <div class="text-xs sm:text-sm text-muted font-medium shrink-0">
                 Datos: 2004 - 2025
             </div>
         </div>
@@ -113,24 +114,24 @@
         </div>
 
         <!-- Filters -->
-        <div class="mb-8 flex flex-wrap items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
-            <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+        <div class="mb-8 flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <svg class="w-5 h-5 text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
                 <span class="font-semibold text-[12px] text-muted uppercase tracking-wider">Filtros:</span>
             </div>
             
-            <div class="flex gap-3 ml-2">
-                <select id="filter-price" class="bg-bg border border-border text-main text-sm rounded-lg focus:ring-accent focus:border-accent block p-2.5 outline-none cursor-pointer font-medium">
+            <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto sm:ml-2">
+                <select id="filter-price" class="w-full sm:w-auto bg-bg border border-border text-main text-sm rounded-lg focus:ring-accent focus:border-accent block p-2.5 outline-none cursor-pointer font-medium">
                     <option value="Constantes">Precios Constantes (Real)</option>
                     <option value="Corrientes">Precios Corrientes (Nominal)</option>
                 </select>
                 
-                <select id="filter-variable" class="bg-bg border border-border text-main text-sm rounded-lg focus:ring-accent focus:border-accent block p-2.5 outline-none cursor-pointer font-medium">
+                <select id="filter-variable" class="w-full sm:w-auto bg-bg border border-border text-main text-sm rounded-lg focus:ring-accent focus:border-accent block p-2.5 outline-none cursor-pointer font-medium">
                     <option value="Valor agregado bruto">Valor Agregado Bruto (VAB)</option>
                     <option value="Valor bruto de la producción">Valor Bruto de Producción (VBP)</option>
                 </select>
             </div>
-            <div class="ml-auto text-xs text-muted italic">
+            <div class="w-full sm:w-auto sm:ml-auto text-xs text-muted italic text-left sm:text-right mt-2 sm:mt-0">
                 * El dataset original no contiene desglose por mineral ni región.
             </div>
         </div>
