@@ -1,4 +1,5 @@
 Análisis del sector minero argentino: producción, eficiencia y participación económica (2004–2025)
+
 🧠 Contexto
 
 El sector minero ha ganado relevancia progresiva dentro de la economía argentina en las últimas décadas. Comprender su evolución, eficiencia y peso relativo resulta clave para evaluar su rol estratégico y su sostenibilidad en el tiempo.
